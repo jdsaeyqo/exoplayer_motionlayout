@@ -13,7 +13,7 @@ import com.example.exoplayer.R
 import com.example.exoplayer.model.VideoModel
 
 
-class VideoAdapter : ListAdapter<VideoModel, VideoAdapter.ViewHolder>(diffUtil) {
+class VideoAdapter(val callback : (String,String) -> Unit) : ListAdapter<VideoModel, VideoAdapter.ViewHolder>(diffUtil) {
 
     inner class ViewHolder(private val view : View) : RecyclerView.ViewHolder(view){
 
@@ -30,6 +30,9 @@ class VideoAdapter : ListAdapter<VideoModel, VideoAdapter.ViewHolder>(diffUtil) 
                 .load(item.thumb)
                 .into(thumbnailImageView)
 
+            view.setOnClickListener {
+            callback(item.sources,item.title)
+            }
 
         }
     }
