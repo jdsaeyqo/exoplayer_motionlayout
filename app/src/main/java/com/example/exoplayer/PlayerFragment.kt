@@ -10,12 +10,18 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.exoplayer.adapter.VideoAdapter
 import com.example.exoplayer.databinding.FragmentPlayerBinding
 import com.example.exoplayer.dto.VideoDto
+import com.example.exoplayer.service.Repository
 import com.example.exoplayer.service.VideoService
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.SimpleExoPlayer
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Dispatchers.Main
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -29,7 +35,7 @@ class PlayerFragment : Fragment(R.layout.fragment_player) {
     private var binding: FragmentPlayerBinding? = null
     lateinit var videoAdapter: VideoAdapter
     private var player : SimpleExoPlayer? = null
-
+    private val scope = CoroutineScope(Dispatchers.IO)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -42,7 +48,11 @@ class PlayerFragment : Fragment(R.layout.fragment_player) {
         initPlayer(fragmentPlayerBinding)
         initControlButton(fragmentPlayerBinding)
 
-        getVideoList()
+
+        scope.launch {
+            getVideoList()
+        }
+
     }
 
 
@@ -128,32 +138,15 @@ class PlayerFragment : Fragment(R.layout.fragment_player) {
         }
     }
 
-    private fun getVideoList() {
-        val retrofit = Retrofit.Builder()
-            .baseUrl("https://run.mocky.io/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-
+    private suspend fun getVideoList() {
+      val retrofit = Repository.retrofit
         retrofit.create(VideoService::class.java).also {
-            it.listVideos()
-                .enqueue(object : Callback<VideoDto> {
-                    override fun onResponse(call: Call<VideoDto>, response: Response<VideoDto>) {
-                        if (response.isSuccessful.not()) {
-                            Log.d("MainActivitu", "fail")
-                            return
-                        }
+            it.listVideos().body()?.let {videoDto ->
+                withContext(Main){
+                    videoAdapter.submitList(videoDto.videos)
+                }
+            }
 
-                        response.body()?.let { videoDto ->
-                            videoAdapter.submitList(videoDto.videos)
-                        }
-
-                    }
-
-                    override fun onFailure(call: Call<VideoDto>, t: Throwable) {
-
-                    }
-
-                })
         }
     }
 
@@ -168,7 +161,6 @@ class PlayerFragment : Fragment(R.layout.fragment_player) {
             player?.play()
 
         }
-
 
         binding?.let {
             it.playerMotionLayout.transitionToEnd()
