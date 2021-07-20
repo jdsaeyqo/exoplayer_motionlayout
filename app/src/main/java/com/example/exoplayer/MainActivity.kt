@@ -8,17 +8,15 @@ import com.example.exoplayer.databinding.ActivityMainBinding
 import com.example.exoplayer.service.Repository
 import com.example.exoplayer.service.VideoService
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
 
     lateinit var binding: ActivityMainBinding
     lateinit var videoAdapter: VideoAdapter
 
-    private val scope = CoroutineScope(IO)
+    private val scope = CoroutineScope(Main)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,9 +37,8 @@ class MainActivity : AppCompatActivity() {
 
         initRecyclerView()
 
-        scope.launch {
-            getVideoList()
-        }
+        getVideoList()
+
 
     }
 
@@ -52,19 +49,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun getVideoList() {
+    private fun getVideoList() {
 
         val retrofit = Repository.retrofit
 
-        retrofit.create(VideoService::class.java).also {
-            it.listVideos().body()?.let { videoDto ->
-                withContext(Main){
-                    videoAdapter.submitList(videoDto.videos)
+        scope.launch {
+            retrofit.create(VideoService::class.java).also {
+                it.listVideos().body()?.let { videoDto ->
+                    videoAdapter.setList(videoDto.videos)
+
                 }
-
-
             }
-
         }
+
     }
 }

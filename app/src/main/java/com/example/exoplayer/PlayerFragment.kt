@@ -2,14 +2,12 @@ package com.example.exoplayer
 
 import android.net.Uri
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import androidx.constraintlayout.motion.widget.MotionLayout
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.exoplayer.adapter.VideoAdapter
 import com.example.exoplayer.databinding.FragmentPlayerBinding
-import com.example.exoplayer.dto.VideoDto
 import com.example.exoplayer.service.Repository
 import com.example.exoplayer.service.VideoService
 import com.google.android.exoplayer2.MediaItem
@@ -18,15 +16,8 @@ import com.google.android.exoplayer2.SimpleExoPlayer
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import kotlin.math.abs
 
 
@@ -35,7 +26,7 @@ class PlayerFragment : Fragment(R.layout.fragment_player) {
     private var binding: FragmentPlayerBinding? = null
     lateinit var videoAdapter: VideoAdapter
     private var player : SimpleExoPlayer? = null
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(Main)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -48,13 +39,9 @@ class PlayerFragment : Fragment(R.layout.fragment_player) {
         initPlayer(fragmentPlayerBinding)
         initControlButton(fragmentPlayerBinding)
 
-
-        scope.launch {
-            getVideoList()
-        }
+        getVideoList()
 
     }
-
 
     private fun initMotionLayoutEvent(fragmentPlayerBinding: FragmentPlayerBinding) {
         fragmentPlayerBinding.playerMotionLayout.setTransitionListener(object :
@@ -138,16 +125,19 @@ class PlayerFragment : Fragment(R.layout.fragment_player) {
         }
     }
 
-    private suspend fun getVideoList() {
+    private fun getVideoList() {
       val retrofit = Repository.retrofit
-        retrofit.create(VideoService::class.java).also {
-            it.listVideos().body()?.let {videoDto ->
-                withContext(Main){
-                    videoAdapter.submitList(videoDto.videos)
-                }
-            }
 
+        scope.launch {
+            retrofit.create(VideoService::class.java).also {
+                it.listVideos().body()?.let {videoDto ->
+                    videoAdapter.setList(videoDto.videos)
+
+                }
+
+            }
         }
+
     }
 
     fun play(url : String, title : String){
